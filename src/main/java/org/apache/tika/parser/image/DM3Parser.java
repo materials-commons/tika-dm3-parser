@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.Set;
 
 import org.apache.tika.exception.TikaException;
+import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.AbstractParser;
@@ -29,7 +30,13 @@ public class DM3Parser extends AbstractParser
     public void parse(InputStream stream, ContentHandler handler, Metadata metadata, ParseContext context)
             throws IOException, SAXException, TikaException
     {
-        // TODO Auto-generated method stub
+        TikaInputStream tikaStream = TikaInputStream.get(stream);
+        parseDM3Stream(tikaStream, handler, metadata, context);
+    }
+
+    private void parseDM3Stream(TikaInputStream tikaStream, ContentHandler handler, Metadata metadata,
+            ParseContext context)
+    {
         
     }
 
