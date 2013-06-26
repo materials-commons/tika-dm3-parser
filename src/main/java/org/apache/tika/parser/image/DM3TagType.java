@@ -2,15 +2,22 @@ package org.apache.tika.parser.image;
 
 public enum DM3TagType
 {
-    SHORT(2), LONG(3), USHORT(4), UNLONG(5), FLOAT(6), DOUBLE(7),
-    BOOLEAN(8), CHAR(9), OCTET(10), STRUCT(15), STRING(18), ARRAY(20),
-    UNKNOWN(0);
+    SHORT(2, 2), LONG(3, 4), USHORT(4, 2), UNLONG(5, 2), FLOAT(6, 4), DOUBLE(7, 8),
+    BOOLEAN(8, 1), CHAR(9, 1), OCTET(10, 1), STRUCT(15, -1), STRING(18, -1), ARRAY(20, -1),
+    UNKNOWN(0, 0);
     
     private final int value;
+    private final int numBytes;
     
-    private DM3TagType(int value)
+    private DM3TagType(int value, int numBytes)
     {
         this.value = value;
+        this.numBytes = numBytes;
+    }
+    
+    public int numBytes()
+    {
+        return this.numBytes;
     }
     
     public static DM3TagType toTagType(int value)

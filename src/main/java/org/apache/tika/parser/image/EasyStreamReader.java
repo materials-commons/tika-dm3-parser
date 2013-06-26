@@ -1,23 +1,23 @@
 package org.apache.tika.parser.image;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.CharBuffer;
+
+import org.apache.tika.io.TikaInputStream;
 
 public class EasyStreamReader
 { 
-    private final InputStream is;
+    private final TikaInputStream is;
     private ByteOrder byteOrder = ByteOrder.BIG_ENDIAN;
     
-    public EasyStreamReader(InputStream is)
+    public EasyStreamReader(TikaInputStream is)
     {
         this.is = is;
     }
     
-    public EasyStreamReader(InputStream is, ByteOrder byteOrder)
+    public EasyStreamReader(TikaInputStream is, ByteOrder byteOrder)
     {
         this.is = is;
         this.byteOrder = byteOrder;
@@ -28,7 +28,7 @@ public class EasyStreamReader
         this.byteOrder = byteOrder;
     }
     
-    public InputStream getInputStream()
+    public TikaInputStream getInputStream()
     {
         return this.is;
     }
@@ -66,6 +66,11 @@ public class EasyStreamReader
         {
         }
         return s;
+    }
+    
+    public ByteBuffer readBytes(int numberOfBytes)
+    {
+        return readIntoByteBuffer(numberOfBytes);
     }
     
     

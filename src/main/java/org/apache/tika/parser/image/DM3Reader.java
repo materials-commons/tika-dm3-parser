@@ -4,19 +4,18 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteOrder;
+
+import org.apache.tika.io.TikaInputStream;
 
 public class DM3Reader
 {
     private static ByteOrder byteOrder = ByteOrder.LITTLE_ENDIAN;
-    private static final int DATA = 21;
-    private static final int GROUP = 20;
 
     public static void main(String[] args) throws IOException
     {
         File f = new File("/home/gtarcea/Dropbox/transfers/materialscommons/4-bf-150k.dm3");
-        InputStream is = new BufferedInputStream(new FileInputStream(f));
+        TikaInputStream is = TikaInputStream.get(new BufferedInputStream(new FileInputStream(f)));
         EasyStreamReader esr = new EasyStreamReader(is);
         int version = esr.readInt();
         System.out.printf("version = %d%n", version);
@@ -53,7 +52,69 @@ public class DM3Reader
         String label = esr.readString(lengthToRead);
         System.out.println("label = " + label);
         esr.skipBytes(4);
-        int n = esr.readInt(byteOrder);
-        System.out.printf("n = %d%n", n);
+        int lengthOfDefinition = esr.readInt();
+        System.out.printf("lengthOfDefinition = %d%n", lengthOfDefinition);
+        int dataType = esr.readInt();
+        System.out.println("dataType = " + dataType);
+        readArray(esr);
+    }
+    
+    private static void readArray(EasyStreamReader esr)
+    {
+        esr.skipBytes(4);
+        int numFields = esr.readInt();
+        System.out.println("numFields = " + numFields);
+        esr.skipBytes(4);
+        for (int i = 0; i < numFields; i++)
+        {
+            int dataType = esr.readInt();
+            System.out.println("dataType = " + dataType);
+            readDataTypeValue(esr, dataType);
+        }
+        skipToNextTag(esr);
+    }
+    
+    private static void readDataTypeValue(EasyStreamReader esr, int dataType)
+    {
+        DM3TagType tagType = DM3TagType.toTagType(dataType);
+        System.out.println("  tagType = " + tagType);
+        int numBytes = tagType.numBytes();
+        System.out.println("  numBytes = " + numBytes);
+        esr.readBytes(numBytes);
+    }
+    
+    private static void skipToNextTag(EasyStreamReader esr)
+    {
+        byte[] bytesToPeek = peek(esr, 28);
+        final int[] jumps = { 4, 3, 3, 5, 5, 3 };
+        int amountToSkip = 0;
+        for (int i = 0; i < jumps.length; i++)
+        {
+            amountToSkip += jumps[i] + 1;
+            byte b = bytesToPeek[amountToSkip-1];
+            System.out.println("in loop amountToSkip = " + amountToSkip + "/b = " + b);
+            if (b == 20 || b == 21)
+            {
+                break;
+            }
+        }
+        
+        System.out.println("Skipping " + (amountToSkip - 1));
+        esr.skipBytes(amountToSkip - 1);
+        //System.out.println("checking stream location = " + esr.readByte());
+    }
+    
+    private static byte[] peek(EasyStreamReader esr, int bytes)
+    {
+        byte[] buffer = new byte[28];
+        try
+        {
+            esr.getInputStream().peek(buffer);
+        }
+        catch (IOException e)
+        {
+        }
+        
+        return buffer;
     }
 }
