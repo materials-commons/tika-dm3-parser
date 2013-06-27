@@ -5,31 +5,54 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.tika.io.TikaInputStream;
+import org.apache.tika.metadata.Metadata;
 
 public class DM3Reader
 {
-    private static ByteOrder byteOrder = ByteOrder.LITTLE_ENDIAN;
-
-    public static void main(String[] args) throws IOException
+    private EasyStreamReader streamReader;
+    private DM3Header header;
+    
+    public DM3Reader(TikaInputStream stream)
     {
-        File f = new File("/home/gtarcea/Dropbox/transfers/materialscommons/4-bf-150k.dm3");
-        TikaInputStream is = TikaInputStream.get(new BufferedInputStream(new FileInputStream(f)));
-        EasyStreamReader esr = new EasyStreamReader(is);
-        int version = esr.readInt();
-        System.out.printf("version = %d%n", version);
-        int sizeOfFile = esr.readInt();
-        System.out.printf("sizeOfFile = %d%n", sizeOfFile);
-        int endian = esr.readInt();
-        DM3Reader.byteOrder = (endian == 1) ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
-        System.out.printf("endian = %d%n", endian);
-        // setByteOrder(esr, endian);
-        esr.skipBytes(2);
-        int numberOfTags = esr.readInt();
-        System.out.printf("numberOfTags = %d%n", numberOfTags);
-        readTags(esr, numberOfTags);
-        is.close();
+        this.streamReader = new EasyStreamReader(stream);
+    }
+    
+    public Metadata parse()
+    {
+        readHeader();
+        // First entry is always a Tag Group
+        List<MetaTuple> metatuples = new ArrayList<>();
+        DM3TagFormatReader.GROUP.readTagFormatEntry(null, streamReader, header.getByteOrder(), metatuples);
+        Metadata metadata = createMetadata(metatuples);
+        return metadata;
+    }
+    
+    public DM3Header getHeader()
+    {
+        return this.header;
+    }
+    
+    private void readHeader()
+    {
+        int version = streamReader.readInt();
+        int sizeOfFile = streamReader.readInt();
+        int endian = streamReader.readInt();
+        ByteOrder byteOrder = (endian == 1) ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;       
+        this.header = new DM3Header(version, sizeOfFile, byteOrder);
+    }
+
+    private Metadata createMetadata(List<MetaTuple> metaTuples)
+    {
+        Metadata metadata = new Metadata();
+        for (MetaTuple metaTuple : metaTuples)
+        {
+            metadata.set(metaTuple.getName(), metaTuple.getValue());
+        }
+        return metadata;
     }
 
     private static void readTags(EasyStreamReader esr, int numberOfTags)
@@ -116,5 +139,25 @@ public class DM3Reader
         }
         
         return buffer;
+    }
+    
+    public static void main(String[] args) throws IOException
+    {
+        File f = new File("/home/gtarcea/Dropbox/transfers/materialscommons/4-bf-150k.dm3");
+        TikaInputStream is = TikaInputStream.get(new BufferedInputStream(new FileInputStream(f)));
+        EasyStreamReader esr = new EasyStreamReader(is);
+        int version = esr.readInt();
+        System.out.printf("version = %d%n", version);
+        int sizeOfFile = esr.readInt();
+        System.out.printf("sizeOfFile = %d%n", sizeOfFile);
+        int endian = esr.readInt();
+        //DM3Reader.byteOrder = (endian == 1) ? ByteOrder.LITTLE_ENDIAN : ByteOrder.BIG_ENDIAN;
+        System.out.printf("endian = %d%n", endian);
+        // setByteOrder(esr, endian);
+        esr.skipBytes(2);
+        int numberOfTags = esr.readInt();
+        System.out.printf("numberOfTags = %d%n", numberOfTags);
+        readTags(esr, numberOfTags);
+        is.close();
     }
 }
